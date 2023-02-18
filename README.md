@@ -7,6 +7,7 @@ Works great with Adafruit RTC breakouts:
 - [DS3231 Precision RTC](https://www.adafruit.com/product/3013)
 - [PCF8523 RTC](https://www.adafruit.com/product/3295)
 - [DS1307 RTC](https://www.adafruit.com/product/3296)
+- [PCF8563 RTC]
 
 Please note that dayOfTheWeek() ranges from 0 to 6 inclusive with 0 being 'Sunday'.
 
@@ -21,6 +22,7 @@ Atmega328 @ 12MHz  |      X       |             |            |
 Atmega32u4 @ 16MHz |      X       |             |            | Use SDA/SCL on pins D3 &amp; D2
 Atmega32u4 @ 8MHz  |      X       |             |            | Use SDA/SCL on pins D3 &amp; D2
 ESP8266            |      X       |             |            | SDA/SCL default to pins 4 &amp; 5 but any two pins can be assigned as SDA/SCL using Wire.begin(SDA,SCL)
+ESP32              |      X       |             |            | SDA/SCL default to pins 21 &amp; 22 but any two pins can be assigned as SDA/SCL using Wire.begin(SDA,SCL)
 Atmega2560 @ 16MHz |      X       |             |            | Use SDA/SCL on Pins 20 &amp; 21
 ATSAM3X8E          |      X       |             |            | Use SDA1 and SCL1
 ATSAM21D           |      X       |             |            |
