@@ -435,12 +435,21 @@ public:
   bool begin(TwoWire *wireInstance = &Wire);
   bool lostPower(void);
   void adjust(const DateTime &dt);
+  
+  typedef std::function<void(void)> AlarmCallBack;
+  void setAlarm(const DateTime &dt, AlarmCallBack fn);
+  void checkAlarm(void); //call in continuously no mater fastly
   DateTime now();
   void start(void);
   void stop(void);
   uint8_t isrunning();
   Pcf8563SqwPinMode readSqwPinMode();
   void writeSqwPinMode(Pcf8563SqwPinMode mode);
+protected:
+  void turnOffAlarm(void);
+  void enableInt();
+  void disableInt();
+  AlarmCallBack _AlarmCallBack;
 };
 
 /**************************************************************************/

@@ -1,0 +1,126 @@
+warning: LF will be replaced by CRLF in src/RTC_PCF8563.cpp.
+The file will have its original line endings in your working directory
+[1mdiff --git a/src/RTC_PCF8563.cpp b/src/RTC_PCF8563.cpp[m
+[1mindex 8f2e56a..09efb06 100644[m
+[1m--- a/src/RTC_PCF8563.cpp[m
+[1m+++ b/src/RTC_PCF8563.cpp[m
+[36m@@ -1,10 +1,13 @@[m
+ #include "RTClib.h"[m
+ [m
+ #define PCF8563_ADDRESS 0x51       ///< I2C address for PCF8563[m
+[32m+[m
+ #define PCF8563_CLKOUTCONTROL 0x0D ///< CLKOUT control register[m
+ #define PCF8563_CONTROL_1 0x00     ///< Control and status register 1[m
+ #define PCF8563_CONTROL_2 0x01     ///< Control and status register 2[m
+ #define PCF8563_VL_SECONDS 0x02    ///< register address for VL_SECONDS[m
+[32m+[m[32m#define PCF8563_MINUTE_ALARM 0x09    ///< register address for MINUTE_ALARM[m
+[32m+[m
+ #define PCF8563_CLKOUT_MASK 0x83   ///< bitmask for SqwPinMode on CLKOUT pin[m
+ [m
+ /**************************************************************************/[m
+[36m@@ -53,6 +56,105 @@[m [mvoid RTC_PCF8563::adjust(const DateTime &dt) {[m
+   i2c_dev->write(buffer, 8);[m
+ }[m
+ [m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32m/*![m
+[32m+[m[32m    @brief  Set the alarm time[m
+[32m+[m[32m    @param dt DateTime to set, just use min,hour,day[m
+[32m+[m[32m*/[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32mvoid RTC_PCF8563::setAlarm(const DateTime &dt, AlarmCallBack fn) {[m
+[32m+[m[32m  uint8_t buffer[5] = {PCF8563_MINUTE_ALARM, // start at location 9, MINUTE_ALARM[m
+[32m+[m[32m                       bin2bcd(dt.minute()),[m
+[32m+[m[32m                       bin2bcd(dt.hour()),[m
+[32m+[m[32m                       bin2bcd(dt.day()),[m
+[32m+[m[32m                       bin2bcd(0) // skip weekdays[m
+[32m+[m[32m                      };[m
+[32m+[m
+[32m+[m[32m  turnOffAlarm();[m
+[32m+[m[32m  enableInt();[m
+[32m+[m
+[32m+[m[32m  // Serial.printf("setAlarm\n   d: %d, h: %d, m: %d\n", bcd2bin(buffer[3]), bcd2bin(buffer[2]), bcd2bin(buffer[1]));[m
+[32m+[m[32m  buffer[1] &= ~0x80;[m
+[32m+[m[32m  buffer[2] &= ~0x80;[m
+[32m+[m[32m  buffer[3] &= ~0x80;[m
+[32m+[m[32m  // buffer[4] &= ~0x80;[m
+[32m+[m
+[32m+[m[32m  // buffer[1] |= 0x80;[m
+[32m+[m[32m  // buffer[2] |= 0x80;[m
+[32m+[m[32m  // buffer[3] |= 0x80;[m
+[32m+[m[32m  buffer[4] |= 0x80;[m
+[32m+[m[41m  [m
+[32m+[m[32m  i2c_dev->write(buffer, 5);[m
+[32m+[m[32m  _AlarmCallBack = fn;[m
+[32m+[m
+[32m+[m[32m  //////////////////////[m
+[32m+[m[32m  // i2c_dev->write_then_read(buffer, 1, &buffer[1], 4);[m
+[32m+[m[32m  // Serial.printf("inMemSetAlarm: %d\n   d: %d, h: %d, m: %d\n",buffer[4], bcd2bin(buffer[3]), bcd2bin(buffer[2]), bcd2bin(buffer[1]));[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32m/*![m
+[32m+[m[32m    @brief  Turn Off the alarm[m
+[32m+[m[32m*/[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32mvoid RTC_PCF8563::turnOffAlarm(void) {[m
+[32m+[m[32m  // uint8_t tmp[1];[m
+[32m+[m[32m  // tmp[0] = PCF8563_CONTROL_2;[m
+[32m+[m[32m  // i2c_dev->write_then_read(tmp, 1, tmp, 1);[m
+[32m+[m[32m  // tmp[0] &= ~(0x08); //bit 3 AF[m
+[32m+[m[32m  // i2c_dev->write(tmp, 1);[m
+[32m+[m[32m  uint8_t tmp = read_register(PCF8563_CONTROL_2);[m
+[32m+[m[32m  tmp &= ~0x08; //bit 1 AIE[m
+[32m+[m[32m  write_register(PCF8563_CONTROL_2, tmp);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32m/*![m
+[32m+[m[32m    @brief  enable the INT output[m
+[32m+[m[32m*/[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32mvoid RTC_PCF8563::enableInt(){[m
+[32m+[m[32m  // uint8_t tmp[1];[m
+[32m+[m[32m  // tmp[0] = PCF8563_CONTROL_2;[m
+[32m+[m[32m  // i2c_dev->write_then_read(tmp, 1, tmp, 1);[m
+[32m+[m[32m  // tmp[0] |= (0x02); //bit 1 AIE[m
+[32m+[m[32m  // i2c_dev->write(tmp, 1);[m
+[32m+[m[32m  uint8_t tmp = read_register(PCF8563_CONTROL_2);[m
+[32m+[m[32m  tmp |= 0x02; //bit 1 AIE[m
+[32m+[m[32m  write_register(PCF8563_CONTROL_2, tmp);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32m/*![m
+[32m+[m[32m    @brief  disable the INT output[m
+[32m+[m[32m*/[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32mvoid RTC_PCF8563::disableInt(){[m
+[32m+[m[32m  // uint8_t tmp[1];[m
+[32m+[m[32m  // tmp[0] = PCF8563_CONTROL_2;[m
+[32m+[m[32m  // i2c_dev->write_then_read(tmp, 1, tmp, 1);[m
+[32m+[m[32m  // tmp[0] &= ~(0x02); //bit 1 AIE[m
+[32m+[m[32m  // i2c_dev->write(tmp, 1);[m
+[32m+[m[32m  uint8_t tmp = read_register(PCF8563_CONTROL_2);[m
+[32m+[m[32m  tmp &= ~(0x02); //bit 1 AIE[m
+[32m+[m[32m  write_register(PCF8563_CONTROL_2, tmp);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32m/*![m
+[32m+[m[32m    @brief  check the alarm and call user AlarmCallBack fn in setAlarm[m
+[32m+[m[32m*/[m
+[32m+[m[32m/**************************************************************************/[m
+[32m+[m[32mvoid RTC_PCF8563::checkAlarm(void) {[m
+[32m+[m[32m  uint8_t tmp = read_register(PCF8563_CONTROL_2);[m
+[32m+[m[32m  // Serial.printf("PCF8563_CONTROL_2: %x\n\n", tmp);[m
+[32m+[m[32m  bool bitAF = ((tmp & 0x08) != 0) ? true: false;[m
+[32m+[m[32m  if(bitAF){[m
+[32m+[m[32m    _AlarmCallBack();[m
+[32m+[m[32m    turnOffAlarm();[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+ /**************************************************************************/[m
+ /*![m
+     @brief  Get the current date/time[m

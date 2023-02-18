@@ -1,10 +1,13 @@
 #include "RTClib.h"
 
 #define PCF8563_ADDRESS 0x51       ///< I2C address for PCF8563
+
 #define PCF8563_CLKOUTCONTROL 0x0D ///< CLKOUT control register
 #define PCF8563_CONTROL_1 0x00     ///< Control and status register 1
 #define PCF8563_CONTROL_2 0x01     ///< Control and status register 2
 #define PCF8563_VL_SECONDS 0x02    ///< register address for VL_SECONDS
+#define PCF8563_MINUTE_ALARM 0x09    ///< register address for MINUTE_ALARM
+
 #define PCF8563_CLKOUT_MASK 0x83   ///< bitmask for SqwPinMode on CLKOUT pin
 
 /**************************************************************************/
@@ -51,6 +54,105 @@ void RTC_PCF8563::adjust(const DateTime &dt) {
                        bin2bcd(0), // skip weekdays
                        bin2bcd(dt.month()),  bin2bcd(dt.year() - 2000U)};
   i2c_dev->write(buffer, 8);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Set the alarm time
+    @param dt DateTime to set, just use min,hour,day
+*/
+/**************************************************************************/
+void RTC_PCF8563::setAlarm(const DateTime &dt, AlarmCallBack fn) {
+  uint8_t buffer[5] = {PCF8563_MINUTE_ALARM, // start at location 9, MINUTE_ALARM
+                       bin2bcd(dt.minute()),
+                       bin2bcd(dt.hour()),
+                       bin2bcd(dt.day()),
+                       bin2bcd(0) // skip weekdays
+                      };
+
+  turnOffAlarm();
+  enableInt();
+
+  // Serial.printf("setAlarm\n   d: %d, h: %d, m: %d\n", bcd2bin(buffer[3]), bcd2bin(buffer[2]), bcd2bin(buffer[1]));
+  buffer[1] &= ~0x80;
+  buffer[2] &= ~0x80;
+  buffer[3] &= ~0x80;
+  // buffer[4] &= ~0x80;
+
+  // buffer[1] |= 0x80;
+  // buffer[2] |= 0x80;
+  // buffer[3] |= 0x80;
+  buffer[4] |= 0x80;
+  
+  i2c_dev->write(buffer, 5);
+  _AlarmCallBack = fn;
+
+  //////////////////////
+  // i2c_dev->write_then_read(buffer, 1, &buffer[1], 4);
+  // Serial.printf("inMemSetAlarm: %d\n   d: %d, h: %d, m: %d\n",buffer[4], bcd2bin(buffer[3]), bcd2bin(buffer[2]), bcd2bin(buffer[1]));
+}
+
+/**************************************************************************/
+/*!
+    @brief  Turn Off the alarm
+*/
+/**************************************************************************/
+void RTC_PCF8563::turnOffAlarm(void) {
+  // uint8_t tmp[1];
+  // tmp[0] = PCF8563_CONTROL_2;
+  // i2c_dev->write_then_read(tmp, 1, tmp, 1);
+  // tmp[0] &= ~(0x08); //bit 3 AF
+  // i2c_dev->write(tmp, 1);
+  uint8_t tmp = read_register(PCF8563_CONTROL_2);
+  tmp &= ~0x08; //bit 1 AIE
+  write_register(PCF8563_CONTROL_2, tmp);
+}
+
+/**************************************************************************/
+/*!
+    @brief  enable the INT output
+*/
+/**************************************************************************/
+void RTC_PCF8563::enableInt(){
+  // uint8_t tmp[1];
+  // tmp[0] = PCF8563_CONTROL_2;
+  // i2c_dev->write_then_read(tmp, 1, tmp, 1);
+  // tmp[0] |= (0x02); //bit 1 AIE
+  // i2c_dev->write(tmp, 1);
+  uint8_t tmp = read_register(PCF8563_CONTROL_2);
+  tmp |= 0x02; //bit 1 AIE
+  write_register(PCF8563_CONTROL_2, tmp);
+}
+
+/**************************************************************************/
+/*!
+    @brief  disable the INT output
+*/
+/**************************************************************************/
+void RTC_PCF8563::disableInt(){
+  // uint8_t tmp[1];
+  // tmp[0] = PCF8563_CONTROL_2;
+  // i2c_dev->write_then_read(tmp, 1, tmp, 1);
+  // tmp[0] &= ~(0x02); //bit 1 AIE
+  // i2c_dev->write(tmp, 1);
+  uint8_t tmp = read_register(PCF8563_CONTROL_2);
+  tmp &= ~(0x02); //bit 1 AIE
+  write_register(PCF8563_CONTROL_2, tmp);
+}
+
+/**************************************************************************/
+/*!
+    @brief  check the alarm and call user AlarmCallBack fn in setAlarm
+*/
+/**************************************************************************/
+void RTC_PCF8563::checkAlarm(void) {
+  uint8_t tmp = read_register(PCF8563_CONTROL_2);
+  // Serial.printf("PCF8563_CONTROL_2: %x\n\n", tmp);
+  bool bitAF = ((tmp & 0x08) != 0) ? true: false;
+  if(bitAF){
+    _AlarmCallBack();
+    turnOffAlarm();
+  }
 }
 
 /**************************************************************************/
